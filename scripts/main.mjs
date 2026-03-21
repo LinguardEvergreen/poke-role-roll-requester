@@ -79,7 +79,7 @@ async function openRequestDialog(token) {
 
   const content = await renderTemplate(`modules/${MODULE_ID}/templates/request-dialog.hbs`, templateData);
 
-  new foundry.applications.api.DialogV2({
+  await foundry.applications.api.DialogV2.wait({
     window: { title: loc("ROLL_REQ.dialogTitle", { name: actor.name }) },
     content,
     buttons: [
@@ -88,8 +88,8 @@ async function openRequestDialog(token) {
         label: loc("ROLL_REQ.send"),
         icon: "fas fa-paper-plane",
         default: true,
-        callback: (event, button) => {
-          const form = button.closest(".dialog-v2").querySelector("form");
+        callback: (event, button, dialog) => {
+          const form = button.form;
           return processRequestForm(form, actor);
         }
       },
@@ -98,38 +98,36 @@ async function openRequestDialog(token) {
         label: loc("ROLL_REQ.cancel"),
         icon: "fas fa-times"
       }
-    ],
-    default: "send"
-  }).render(true);
+    ]
+  });
 }
 
 function processRequestForm(form, actor) {
-  const formData = new FormDataExtended(form).object;
-
   const selectedTraits = [];
   const traitLabels = [];
 
   for (const key of [...PHYSICAL_MENTAL, ...SOCIAL]) {
-    if (formData[`attr-${key}`]) {
+    const checkbox = form.elements[`attr-${key}`];
+    if (checkbox?.checked) {
       selectedTraits.push({ type: "attribute", key });
       traitLabels.push(loc(`ROLL_REQ.${key}`));
     }
   }
   for (const key of SKILLS) {
-    if (formData[`skill-${key}`]) {
+    const checkbox = form.elements[`skill-${key}`];
+    if (checkbox?.checked) {
       selectedTraits.push({ type: "skill", key });
       traitLabels.push(loc(`ROLL_REQ.${key}`));
     }
   }
 
   if (selectedTraits.length === 0) {
-    ui.notifications.warn(loc("ROLL_REQ.noTraitSelected"));
-    return false;
+    throw new Error(loc("ROLL_REQ.noTraitSelected"));
   }
 
-  const message = formData["gm-message"] || "";
-  const requiredSuccesses = parseInt(formData["required-successes"]) || 1;
-  const applyPainPenalty = !!formData["apply-pain"];
+  const message = form.elements["gm-message"]?.value || "";
+  const requiredSuccesses = parseInt(form.elements["required-successes"]?.value) || 1;
+  const applyPainPenalty = form.elements["apply-pain"]?.checked ?? true;
 
   sendRollRequest(actor, selectedTraits, traitLabels, message, requiredSuccesses, applyPainPenalty);
 }
