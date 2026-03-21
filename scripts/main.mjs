@@ -262,9 +262,8 @@ Hooks.once("ready", () => {
     }
   });
 
-  // Delegated click listener on the chat log — survives DOM replacement
-  const chatLog = document.getElementById("chat-log");
-  if (chatLog) chatLog.addEventListener("click", handleRollButtonClick);
+  // Delegated click listener on the document — guaranteed to work
+  document.addEventListener("click", handleRollButtonClick);
 });
 
 /* ---------------------------------------- */
@@ -301,12 +300,50 @@ async function handleRollButtonClick(event) {
   const button = event.target.closest(".roll-req-execute");
   if (!button || button.disabled) return;
 
-  // Find the parent chat message element and get the message document
-  const messageEl = button.closest("[data-message-id]");
-  if (!messageEl) return;
-  const message = game.messages.get(messageEl.dataset.messageId);
-  if (!message) return;
+  console.log(`${MODULE_ID} | Button clicked!`);
 
+  // Find the parent chat message element — try multiple selectors for v13 compatibility
+  const messageEl = button.closest("[data-message-id]")
+    || button.closest(".chat-message")
+    || button.closest(".message");
+
+  if (!messageEl) {
+    console.warn(`${MODULE_ID} | Could not find parent message element. Button parent chain:`, button.parentElement?.parentElement?.parentElement);
+    // Fallback: find the message by searching flags
+    const message = findMessageByActorId(button.dataset.actorId);
+    if (message) {
+      return doRoll(button, message, event);
+    }
+    return;
+  }
+
+  // Try to get message ID from various possible attributes
+  const messageId = messageEl.dataset?.messageId || messageEl.id?.replace("chat-message-", "");
+  console.log(`${MODULE_ID} | Found message element, id:`, messageId);
+
+  const message = messageId ? game.messages.get(messageId) : null;
+  if (!message) {
+    console.warn(`${MODULE_ID} | Could not find message document for id:`, messageId);
+    // Fallback
+    const fallbackMessage = findMessageByActorId(button.dataset.actorId);
+    if (fallbackMessage) {
+      return doRoll(button, fallbackMessage, event);
+    }
+    return;
+  }
+
+  return doRoll(button, message, event);
+}
+
+function findMessageByActorId(actorId) {
+  // Search recent messages for an unrolled request matching this actor
+  return game.messages.contents.reverse().find(m => {
+    const flags = m.flags?.[MODULE_ID];
+    return flags?.isRollRequest && !flags?.rolled && flags?.requestData?.actorId === actorId;
+  });
+}
+
+async function doRoll(button, message, event) {
   // Already rolled?
   if (message.getFlag(MODULE_ID, "rolled")) return;
 
@@ -321,6 +358,7 @@ async function handleRollButtonClick(event) {
 
   try {
     const requestData = JSON.parse(button.dataset.request);
+    console.log(`${MODULE_ID} | Executing roll for`, actor.name, requestData);
     await executeRoll(actor, requestData, message);
   } catch (err) {
     console.error(`${MODULE_ID} | Roll execution failed:`, err);
