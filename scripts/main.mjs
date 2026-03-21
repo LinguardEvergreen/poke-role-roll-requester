@@ -13,27 +13,41 @@ function loc(key, data = {}) {
 }
 
 /* ---------------------------------------- */
-/*  Token Context Menu                      */
+/*  Token HUD Button                        */
 /* ---------------------------------------- */
 
-Hooks.on("getTokenActionButtons", (token, buttons) => {
+Hooks.on("renderTokenHUD", (app, html, context, options) => {
   if (!game.user.isGM) return;
+
+  const token = app.object;
   if (!token?.actor) return;
 
-  // Find the "utilities" group or create a custom one
-  let targetGroup = buttons.find(g => g.id === "utilities");
-  if (!targetGroup) {
-    targetGroup = { id: "roll-requester", name: loc("ROLL_REQ.contextMenu"), buttons: [] };
-    buttons.push(targetGroup);
-  }
+  // Prevent duplicate buttons on re-render
+  if (html.querySelector('[data-action="request-roll"]')) return;
 
-  targetGroup.buttons.push({
-    id: "request-roll",
-    name: loc("ROLL_REQ.contextMenu"),
-    icon: "fas fa-dice-d20",
-    visible: game.user.isGM,
-    callback: () => openRequestDialog(token)
+  // Create the button
+  const button = document.createElement("div");
+  button.classList.add("control-icon");
+  button.dataset.action = "request-roll";
+  button.innerHTML = `<i class="fas fa-dice-d20"></i>`;
+  button.dataset.tooltip = loc("ROLL_REQ.contextMenu");
+
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openRequestDialog(token);
   });
+
+  // Insert after the combat toggle button in the right column
+  const rightCol = html.querySelector(".col.right");
+  if (rightCol) {
+    const combatButton = rightCol.querySelector('[data-action="combat"]');
+    if (combatButton) {
+      combatButton.after(button);
+    } else {
+      rightCol.prepend(button);
+    }
+  }
 });
 
 /* ---------------------------------------- */
