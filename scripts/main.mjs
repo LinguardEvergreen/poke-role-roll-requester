@@ -179,7 +179,7 @@ async function sendRollRequest(actor, selectedTraits, traitLabels, gmMessage, re
 /*  Chat Message - Roll Button Listener     */
 /* ---------------------------------------- */
 
-Hooks.on("renderChatMessage", (message, html) => {
+Hooks.on("renderChatMessageHTML", (message, html) => {
   const button = html.querySelector(".roll-req-execute");
   if (!button) return;
 
