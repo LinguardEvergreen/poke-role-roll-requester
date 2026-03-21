@@ -8,6 +8,9 @@ const SKILLS = [
   "nature", "perform", "science", "stealth", "throw", "weapons"
 ];
 
+// Use v13 namespaced renderTemplate
+const hbsRender = foundry.applications.handlebars.renderTemplate;
+
 function loc(key, data = {}) {
   return game.i18n.format(key, data);
 }
@@ -22,10 +25,8 @@ Hooks.on("renderTokenHUD", (app, html, context, options) => {
   const token = app.object;
   if (!token?.actor) return;
 
-  // Prevent duplicate buttons on re-render
   if (html.querySelector('[data-action="request-roll"]')) return;
 
-  // Create the button
   const button = document.createElement("div");
   button.classList.add("control-icon");
   button.dataset.action = "request-roll";
@@ -38,7 +39,6 @@ Hooks.on("renderTokenHUD", (app, html, context, options) => {
     openRequestDialog(token);
   });
 
-  // Insert after the combat toggle button in the right column
   const rightCol = html.querySelector(".col.right");
   if (rightCol) {
     const combatButton = rightCol.querySelector('[data-action="combat"]');
@@ -77,7 +77,7 @@ async function openRequestDialog(token) {
     actionNumber: actor.system.combat?.actionNumber ?? 1
   };
 
-  const content = await renderTemplate(`modules/${MODULE_ID}/templates/request-dialog.hbs`, templateData);
+  const content = await hbsRender(`modules/${MODULE_ID}/templates/request-dialog.hbs`, templateData);
 
   const dialog = new foundry.applications.api.DialogV2({
     window: { title: loc("ROLL_REQ.dialogTitle", { name: actor.name }) },
@@ -101,7 +101,6 @@ async function openRequestDialog(token) {
     ]
   });
 
-  // Hook into dialog render to attach selection constraint logic
   Hooks.once("renderDialogV2", (app, html) => {
     if (app !== dialog) return;
     attachSelectionConstraints(html);
@@ -110,14 +109,12 @@ async function openRequestDialog(token) {
   dialog.render(true);
 }
 
-/**
- * Attach checkbox selection constraints to the dialog:
- * - Max 2 total selections
- * - Physical/Mental and Social attributes are mutually exclusive
- */
+/* ---------------------------------------- */
+/*  Selection Constraints                   */
+/* ---------------------------------------- */
+
 function attachSelectionConstraints(html) {
   const allCheckboxes = html.querySelectorAll(".roll-req-selectable");
-
   allCheckboxes.forEach(cb => {
     cb.addEventListener("change", () => updateConstraints(html));
   });
@@ -127,35 +124,20 @@ function updateConstraints(html) {
   const allCheckboxes = Array.from(html.querySelectorAll(".roll-req-selectable"));
   const checked = allCheckboxes.filter(cb => cb.checked);
   const checkedCount = checked.length;
-
-  // Determine which attribute group is active (physical or social)
   const hasPhysical = checked.some(cb => cb.dataset.group === "physical");
   const hasSocial = checked.some(cb => cb.dataset.group === "social");
 
   allCheckboxes.forEach(cb => {
     const group = cb.dataset.group;
-
-    // If already checked, always keep enabled so user can uncheck
     if (cb.checked) {
       cb.disabled = false;
       cb.closest(".roll-req-trait")?.classList.remove("roll-req-disabled");
       return;
     }
-
     let shouldDisable = false;
-
-    // Rule 1: Max 2 selections total
-    if (checkedCount >= 2) {
-      shouldDisable = true;
-    }
-
-    // Rule 2: Physical/Mental and Social are mutually exclusive
-    if (group === "physical" && hasSocial) {
-      shouldDisable = true;
-    }
-    if (group === "social" && hasPhysical) {
-      shouldDisable = true;
-    }
+    if (checkedCount >= 2) shouldDisable = true;
+    if (group === "physical" && hasSocial) shouldDisable = true;
+    if (group === "social" && hasPhysical) shouldDisable = true;
 
     cb.disabled = shouldDisable;
     cb.closest(".roll-req-trait")?.classList.toggle("roll-req-disabled", shouldDisable);
@@ -181,12 +163,8 @@ function processRequestForm(form, actor) {
     }
   }
 
-  if (selectedTraits.length === 0) {
-    throw new Error(loc("ROLL_REQ.noTraitSelected"));
-  }
-  if (selectedTraits.length > 2) {
-    throw new Error(loc("ROLL_REQ.maxTwoTraits"));
-  }
+  if (selectedTraits.length === 0) throw new Error(loc("ROLL_REQ.noTraitSelected"));
+  if (selectedTraits.length > 2) throw new Error(loc("ROLL_REQ.maxTwoTraits"));
 
   const message = form.elements["gm-message"]?.value || "";
   const requiredSuccesses = parseInt(form.elements["required-successes"]?.value) || 1;
@@ -196,7 +174,7 @@ function processRequestForm(form, actor) {
 }
 
 /* ---------------------------------------- */
-/*  Chat Message - Request                  */
+/*  Send Roll Request to Chat               */
 /* ---------------------------------------- */
 
 async function sendRollRequest(actor, selectedTraits, traitLabels, gmMessage, requiredSuccesses, applyPainPenalty) {
@@ -219,14 +197,12 @@ async function sendRollRequest(actor, selectedTraits, traitLabels, gmMessage, re
     title: loc("ROLL_REQ.chatRequestTitle")
   };
 
-  const content = await renderTemplate(`modules/${MODULE_ID}/templates/chat/roll-request.hbs`, templateData);
+  const content = await hbsRender(`modules/${MODULE_ID}/templates/chat/roll-request.hbs`, templateData);
 
-  // Find the player who owns this actor
   const ownerIds = Object.entries(actor.ownership)
     .filter(([id, level]) => level === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER && id !== "default")
     .map(([id]) => id);
 
-  // Whisper to owners and GM
   const whisperTargets = [...new Set([...ownerIds, ...game.users.filter(u => u.isGM).map(u => u.id)])];
 
   await ChatMessage.create({
@@ -240,13 +216,12 @@ async function sendRollRequest(actor, selectedTraits, traitLabels, gmMessage, re
 }
 
 /* ---------------------------------------- */
-/*  Socket Handling + Delegated Listeners   */
+/*  Socket: GM updates message flags        */
 /* ---------------------------------------- */
 
 const SOCKET_NAME = `module.${MODULE_ID}`;
 
 Hooks.once("ready", () => {
-  // Socket: GM receives roll results from players
   game.socket.on(SOCKET_NAME, async (data) => {
     const firstGM = game.users.find(u => u.isGM && u.active);
     if (game.user.id !== firstGM?.id) return;
@@ -261,13 +236,10 @@ Hooks.once("ready", () => {
       });
     }
   });
-
-  // Delegated click listener on the document — guaranteed to work
-  document.addEventListener("click", handleRollButtonClick);
 });
 
 /* ---------------------------------------- */
-/*  Render Hook - Display results / hide    */
+/*  Chat Render: attach listener + results  */
 /* ---------------------------------------- */
 
 Hooks.on("renderChatMessageHTML", (message, html) => {
@@ -277,99 +249,41 @@ Hooks.on("renderChatMessageHTML", (message, html) => {
   const actorId = button.dataset.actorId;
   const actor = game.actors.get(actorId);
 
-  // Hide button from non-owners
+  // Hide from non-owners
   if (!actor?.isOwner) {
     button.style.display = "none";
     return;
   }
 
-  // If already rolled, replace button with stored result
+  // If already rolled, show result inline
   const rollResult = message.getFlag(MODULE_ID, "rollResult");
   if (rollResult) {
     const resultEl = buildResultElement(rollResult);
     button.replaceWith(resultEl);
     return;
   }
+
+  // Attach click listener directly on the button (this works in v13)
+  button.addEventListener("click", async (event) => {
+    event.preventDefault();
+    if (button.disabled) return;
+    button.disabled = true;
+    button.classList.add("rolled");
+
+    try {
+      const requestData = JSON.parse(button.dataset.request);
+      await executeRoll(actor, requestData, message);
+    } catch (err) {
+      console.error(`${MODULE_ID} | Roll failed:`, err);
+      ui.notifications.error("Roll failed. Check console for details.");
+      button.disabled = false;
+      button.classList.remove("rolled");
+    }
+  });
 });
 
 /* ---------------------------------------- */
-/*  Handle Roll Button Click (delegated)    */
-/* ---------------------------------------- */
-
-async function handleRollButtonClick(event) {
-  const button = event.target.closest(".roll-req-execute");
-  if (!button || button.disabled) return;
-
-  console.log(`${MODULE_ID} | Button clicked!`);
-
-  // Find the parent chat message element — try multiple selectors for v13 compatibility
-  const messageEl = button.closest("[data-message-id]")
-    || button.closest(".chat-message")
-    || button.closest(".message");
-
-  if (!messageEl) {
-    console.warn(`${MODULE_ID} | Could not find parent message element. Button parent chain:`, button.parentElement?.parentElement?.parentElement);
-    // Fallback: find the message by searching flags
-    const message = findMessageByActorId(button.dataset.actorId);
-    if (message) {
-      return doRoll(button, message, event);
-    }
-    return;
-  }
-
-  // Try to get message ID from various possible attributes
-  const messageId = messageEl.dataset?.messageId || messageEl.id?.replace("chat-message-", "");
-  console.log(`${MODULE_ID} | Found message element, id:`, messageId);
-
-  const message = messageId ? game.messages.get(messageId) : null;
-  if (!message) {
-    console.warn(`${MODULE_ID} | Could not find message document for id:`, messageId);
-    // Fallback
-    const fallbackMessage = findMessageByActorId(button.dataset.actorId);
-    if (fallbackMessage) {
-      return doRoll(button, fallbackMessage, event);
-    }
-    return;
-  }
-
-  return doRoll(button, message, event);
-}
-
-function findMessageByActorId(actorId) {
-  // Search recent messages for an unrolled request matching this actor
-  return game.messages.contents.reverse().find(m => {
-    const flags = m.flags?.[MODULE_ID];
-    return flags?.isRollRequest && !flags?.rolled && flags?.requestData?.actorId === actorId;
-  });
-}
-
-async function doRoll(button, message, event) {
-  // Already rolled?
-  if (message.getFlag(MODULE_ID, "rolled")) return;
-
-  const actorId = button.dataset.actorId;
-  const actor = game.actors.get(actorId);
-  if (!actor?.isOwner) return;
-
-  // Disable button immediately
-  event.preventDefault();
-  button.disabled = true;
-  button.classList.add("rolled");
-
-  try {
-    const requestData = JSON.parse(button.dataset.request);
-    console.log(`${MODULE_ID} | Executing roll for`, actor.name, requestData);
-    await executeRoll(actor, requestData, message);
-  } catch (err) {
-    console.error(`${MODULE_ID} | Roll execution failed:`, err);
-    ui.notifications.error("Roll failed. Check console for details.");
-    button.disabled = false;
-    button.classList.remove("rolled");
-  }
-}
-
-/* ---------------------------------------- */
-/*  Build Result Element from stored data   */
+/*  Build Result Element                    */
 /* ---------------------------------------- */
 
 function buildResultElement(result) {
@@ -409,7 +323,6 @@ function buildResultElement(result) {
 async function executeRoll(actor, requestData, requestMessage) {
   const { traits, traitLabels, requiredSuccesses, applyPainPenalty } = requestData;
 
-  // Calculate dice pool
   let dicePool = 0;
   const breakdownParts = [];
 
@@ -425,7 +338,6 @@ async function executeRoll(actor, requestData, requestMessage) {
     dicePool += value;
   }
 
-  // Pain penalty
   let removedSuccesses = 0;
   if (applyPainPenalty) {
     const hp = actor.system.resources?.hp;
@@ -436,10 +348,8 @@ async function executeRoll(actor, requestData, requestMessage) {
     }
   }
 
-  // Minimum 1 die
   dicePool = Math.max(dicePool, 1);
 
-  // Roll the dice
   const roll = await new Roll(`${dicePool}d6cs>=4`).evaluate();
 
   const rawSuccesses = roll.total;
@@ -447,7 +357,6 @@ async function executeRoll(actor, requestData, requestMessage) {
   const success = netSuccesses >= requiredSuccesses;
   const diceValues = roll.dice[0].results.map(r => r.result);
 
-  // Serializable result object to store in message flags
   const rollResult = {
     diceValues,
     breakdown: breakdownParts.join(" | "),
@@ -460,7 +369,7 @@ async function executeRoll(actor, requestData, requestMessage) {
     traitString: traitLabels.join(" + ")
   };
 
-  // Store result via flags — GM updates directly, player uses socket
+  // GM updates message directly, player sends via socket
   if (game.user.isGM) {
     await requestMessage.update({
       [`flags.${MODULE_ID}.rolled`]: true,
