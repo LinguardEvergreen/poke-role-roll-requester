@@ -1,76 +1,76 @@
 # Poké Role - Roll Requester
 
-Un modulo per **FoundryVTT v13** che aggiunge al Game Master la possibilità di richiedere tiri combinati ai giocatori direttamente dal menu contestuale dei token.
+A **FoundryVTT v13** module that gives the Game Master the ability to request combined rolls from players directly via the token context menu.
 
-## Funzionalità
+## Features
 
-- **Menu contestuale token**: Cliccando con il tasto destro su un token, il GM troverà un nuovo pulsante **"Richiedi Tiro"** (visibile solo al master).
-- **Finestra di richiesta**: Il GM può:
-  - Scrivere un messaggio descrittivo per il giocatore (es. "Tira per evitare la trappola!")
-  - Selezionare una combinazione di **attributi** (Fisici/Mentali e Sociali) e **abilità**
-  - Impostare i **successi richiesti** e scegliere se applicare la **penalità dolore**
-- **Messaggio in chat**: La richiesta appare come messaggio whisper al giocatore proprietario del personaggio, contenente:
-  - Il messaggio del GM
-  - Un pulsante "**Tiro su [Attributi + Abilità selezionate]**" (es. "Tiro su Destrezza + Allerta")
-- **Tiro automatico**: Cliccando il pulsante, il giocatore esegue automaticamente il tiro combinato con le meccaniche del sistema Poké Role (pool di d6, successi su 4+, penalità dolore).
+- **Token context menu**: Right-clicking a token reveals a new **"Request Roll"** button (visible to GM only).
+- **Request dialog**: The GM can:
+  - Write a descriptive message for the player (e.g. "Roll to dodge the falling rocks!")
+  - Select any combination of **attributes** (Physical/Mental and Social) and **skills**
+  - Set the **required successes** and choose whether to apply the **pain penalty**
+- **Chat message**: The request appears as a whispered message to the player who owns the character, containing:
+  - The GM's message
+  - A button labelled "**Roll on [Selected Attributes + Skills]**" (e.g. "Roll on Dexterity + Alert")
+- **Automatic roll**: Clicking the button automatically performs the combined roll using the Poké Role system mechanics (d6 pool, successes on 4+, pain penalty).
 
-## Requisiti
+## Requirements
 
-- **FoundryVTT**: v13 (verificato su Build 351)
-- **Sistema**: [Poké Role System](https://github.com/RiccardoMont1/Pok-Role-Module) v0.16.0+
+- **FoundryVTT**: v13 (verified on Build 351)
+- **System**: [Poké Role System](https://github.com/RiccardoMont1/Pok-Role-Module) v0.16.0+
 
-## Installazione
+## Installation
 
-### Metodo 1 - URL del Manifesto
-1. In FoundryVTT, vai su **Impostazioni → Gestisci Moduli → Installa Modulo**
-2. Incolla l'URL del manifesto:
+### Method 1 - Manifest URL
+1. In FoundryVTT, go to **Settings → Manage Modules → Install Module**
+2. Paste the manifest URL:
    ```
    https://github.com/LinguardEvergreen/poke-role-roll-requester/releases/latest/download/module.json
    ```
-3. Clicca **Installa**
+3. Click **Install**
 
-### Metodo 2 - Manuale
-1. Scarica l'ultima release da [GitHub Releases](https://github.com/LinguardEvergreen/poke-role-roll-requester/releases)
-2. Estrai la cartella in `Data/modules/`
-3. Riavvia FoundryVTT
+### Method 2 - Manual
+1. Download the latest release from [GitHub Releases](https://github.com/LinguardEvergreen/poke-role-roll-requester/releases)
+2. Extract the folder into `Data/modules/`
+3. Restart FoundryVTT
 
-## Utilizzo
+## Usage
 
-1. **Attiva il modulo** nelle impostazioni del mondo
-2. Come GM, fai **tasto destro** su un token nella scena
-3. Clicca **"Richiedi Tiro"** nel menu contestuale
-4. Nella finestra di dialogo:
-   - Scrivi un messaggio descrittivo (opzionale)
-   - Seleziona gli attributi e/o abilità desiderati
-   - Imposta i successi richiesti
-   - Scegli se applicare la penalità dolore
-5. Clicca **"Invia Richiesta"**
-6. Il giocatore proprietario del personaggio vedrà il messaggio in chat con il pulsante per eseguire il tiro
+1. **Enable the module** in your world settings
+2. As GM, **right-click** a token on the scene
+3. Click **"Request Roll"** in the context menu
+4. In the dialog:
+   - Write a descriptive message (optional)
+   - Select the desired attributes and/or skills
+   - Set the required successes
+   - Choose whether to apply the pain penalty
+5. Click **"Send Request"**
+6. The player who owns the character will see the message in chat with a button to perform the roll
 
-## Attributi Disponibili
+## Available Traits
 
-### Fisici / Mentali
-Forza, Destrezza, Vitalità, Speciale, Intuito
+### Physical / Mental Attributes
+Strength, Dexterity, Vitality, Special, Insight
 
-### Sociali
-Tenacia, Bellezza, Classe, Grazia, Arguzia, Fascino
+### Social Attributes
+Tough, Beauty, Cool, Cute, Clever, Allure
 
-### Abilità
-Allerta, Atletica, Lotta, Canalizzare, Scontro, Artigianato, Empatia, Etichetta, Evasione, Intimidire, Sapienza, Medicina, Natura, Esibizione, Scienza, Furtività, Lanciare, Armi
+### Skills
+Alert, Athletic, Brawl, Channel, Clash, Crafts, Empathy, Etiquette, Evasion, Intimidate, Lore, Medicine, Nature, Perform, Science, Stealth, Throw, Weapons
 
-## Meccaniche di Tiro
+## Roll Mechanics
 
-Il modulo utilizza le stesse meccaniche del **Tiro Combinato** del sistema Poké Role:
-- **Pool di dadi**: somma dei valori di tutti gli attributi/abilità selezionati → Nd6
-- **Successo**: ogni dado che mostra 4 o più è un successo
-- **Penalità dolore**: 0 se HP > metà max, 1 se HP ≤ metà max, 2 se HP ≤ 1
-- **Risultato**: Successi netti (raw - rimossi) confrontati con i successi richiesti → HIT o MISS
+The module uses the same mechanics as the **Combined Roll** from the Poké Role system:
+- **Dice pool**: sum of all selected attribute/skill values → Nd6
+- **Success**: each die showing 4 or higher counts as a success
+- **Pain penalty**: 0 if HP > half max, 1 if HP ≤ half max, 2 if HP ≤ 1
+- **Result**: Net successes (raw − removed) compared against required successes → HIT or MISS
 
-## Lingue Supportate
+## Supported Languages
 
-- Italiano 🇮🇹
 - English 🇬🇧
+- Italiano 🇮🇹
 
-## Licenza
+## License
 
-Questo modulo è distribuito come software libero per uso con FoundryVTT e il sistema Poké Role.
+This module is distributed as free software for use with FoundryVTT and the Poké Role system.
