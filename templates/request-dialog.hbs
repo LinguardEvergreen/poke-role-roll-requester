@@ -1,0 +1,63 @@
+<form class="roll-req-dialog">
+  {{!-- GM Message --}}
+  <div class="form-group">
+    <label>{{localize "ROLL_REQ.messageLabel"}}</label>
+    <input type="text" name="gm-message" placeholder="{{localize 'ROLL_REQ.messagePlaceholder'}}" autofocus />
+  </div>
+
+  {{!-- Required Successes --}}
+  <div class="form-group">
+    <label>{{localize "ROLL_REQ.requiredSuccesses"}}</label>
+    <input type="number" name="required-successes" value="{{actionNumber}}" min="1" max="5" />
+  </div>
+
+  {{!-- Pain Penalty --}}
+  <div class="form-group roll-req-checkbox">
+    <label>
+      <input type="checkbox" name="apply-pain" checked />
+      {{localize "ROLL_REQ.applyPainPenalty"}}
+    </label>
+  </div>
+
+  {{!-- Physical / Mental Attributes --}}
+  <fieldset>
+    <legend>{{localize "ROLL_REQ.physicalMental"}}</legend>
+    <div class="roll-req-trait-grid">
+      {{#each physicalMental}}
+      <label class="roll-req-trait">
+        <input type="checkbox" name="attr-{{this.key}}" />
+        <span class="roll-req-trait-name">{{this.label}}</span>
+        <span class="roll-req-trait-value">{{this.value}}</span>
+      </label>
+      {{/each}}
+    </div>
+  </fieldset>
+
+  {{!-- Social Attributes --}}
+  <fieldset>
+    <legend>{{localize "ROLL_REQ.social"}}</legend>
+    <div class="roll-req-trait-grid">
+      {{#each social}}
+      <label class="roll-req-trait">
+        <input type="checkbox" name="attr-{{this.key}}" />
+        <span class="roll-req-trait-name">{{this.label}}</span>
+        <span class="roll-req-trait-value">{{this.value}}</span>
+      </label>
+      {{/each}}
+    </div>
+  </fieldset>
+
+  {{!-- Skills --}}
+  <fieldset>
+    <legend>{{localize "ROLL_REQ.skills"}}</legend>
+    <div class="roll-req-trait-grid">
+      {{#each skills}}
+      <label class="roll-req-trait">
+        <input type="checkbox" name="skill-{{this.key}}" />
+        <span class="roll-req-trait-name">{{this.label}}</span>
+        <span class="roll-req-trait-value">{{this.value}}</span>
+      </label>
+      {{/each}}
+    </div>
+  </fieldset>
+</form>

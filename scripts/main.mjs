@@ -1,0 +1,258 @@
+const MODULE_ID = "poke-role-roll-requester";
+
+const PHYSICAL_MENTAL = ["strength", "dexterity", "vitality", "special", "insight"];
+const SOCIAL = ["tough", "beauty", "cool", "cute", "clever", "allure"];
+const SKILLS = [
+  "alert", "athletic", "brawl", "channel", "clash", "crafts",
+  "empathy", "etiquette", "evasion", "intimidate", "lore", "medicine",
+  "nature", "perform", "science", "stealth", "throw", "weapons"
+];
+
+function loc(key, data = {}) {
+  return game.i18n.format(key, data);
+}
+
+/* ---------------------------------------- */
+/*  Token Context Menu                      */
+/* ---------------------------------------- */
+
+Hooks.on("getTokenActionButtons", (token, buttons) => {
+  if (!game.user.isGM) return;
+  if (!token?.actor) return;
+
+  // Find the "utilities" group or create a custom one
+  let targetGroup = buttons.find(g => g.id === "utilities");
+  if (!targetGroup) {
+    targetGroup = { id: "roll-requester", name: loc("ROLL_REQ.contextMenu"), buttons: [] };
+    buttons.push(targetGroup);
+  }
+
+  targetGroup.buttons.push({
+    id: "request-roll",
+    name: loc("ROLL_REQ.contextMenu"),
+    icon: "fas fa-dice-d20",
+    visible: game.user.isGM,
+    callback: () => openRequestDialog(token)
+  });
+});
+
+/* ---------------------------------------- */
+/*  Request Dialog                          */
+/* ---------------------------------------- */
+
+async function openRequestDialog(token) {
+  const actor = token.actor;
+  if (!actor) return;
+
+  const templateData = {
+    physicalMental: PHYSICAL_MENTAL.map(key => ({
+      key,
+      label: loc(`ROLL_REQ.${key}`),
+      value: actor.system.attributes?.[key] ?? 0
+    })),
+    social: SOCIAL.map(key => ({
+      key,
+      label: loc(`ROLL_REQ.${key}`),
+      value: actor.system.attributes?.[key] ?? 0
+    })),
+    skills: SKILLS.map(key => ({
+      key,
+      label: loc(`ROLL_REQ.${key}`),
+      value: actor.system.skills?.[key] ?? 0
+    })),
+    actionNumber: actor.system.combat?.actionNumber ?? 1
+  };
+
+  const content = await renderTemplate(`modules/${MODULE_ID}/templates/request-dialog.hbs`, templateData);
+
+  new foundry.applications.api.DialogV2({
+    window: { title: loc("ROLL_REQ.dialogTitle", { name: actor.name }) },
+    content,
+    buttons: [
+      {
+        action: "send",
+        label: loc("ROLL_REQ.send"),
+        icon: "fas fa-paper-plane",
+        default: true,
+        callback: (event, button) => {
+          const form = button.closest(".dialog-v2").querySelector("form");
+          return processRequestForm(form, actor);
+        }
+      },
+      {
+        action: "cancel",
+        label: loc("ROLL_REQ.cancel"),
+        icon: "fas fa-times"
+      }
+    ],
+    default: "send"
+  }).render(true);
+}
+
+function processRequestForm(form, actor) {
+  const formData = new FormDataExtended(form).object;
+
+  const selectedTraits = [];
+  const traitLabels = [];
+
+  for (const key of [...PHYSICAL_MENTAL, ...SOCIAL]) {
+    if (formData[`attr-${key}`]) {
+      selectedTraits.push({ type: "attribute", key });
+      traitLabels.push(loc(`ROLL_REQ.${key}`));
+    }
+  }
+  for (const key of SKILLS) {
+    if (formData[`skill-${key}`]) {
+      selectedTraits.push({ type: "skill", key });
+      traitLabels.push(loc(`ROLL_REQ.${key}`));
+    }
+  }
+
+  if (selectedTraits.length === 0) {
+    ui.notifications.warn(loc("ROLL_REQ.noTraitSelected"));
+    return false;
+  }
+
+  const message = formData["gm-message"] || "";
+  const requiredSuccesses = parseInt(formData["required-successes"]) || 1;
+  const applyPainPenalty = !!formData["apply-pain"];
+
+  sendRollRequest(actor, selectedTraits, traitLabels, message, requiredSuccesses, applyPainPenalty);
+}
+
+/* ---------------------------------------- */
+/*  Chat Message - Request                  */
+/* ---------------------------------------- */
+
+async function sendRollRequest(actor, selectedTraits, traitLabels, gmMessage, requiredSuccesses, applyPainPenalty) {
+  const buttonLabel = loc("ROLL_REQ.rollButton", { traits: traitLabels.join(" + ") });
+
+  const requestData = {
+    actorId: actor.id,
+    traits: selectedTraits,
+    traitLabels,
+    requiredSuccesses,
+    applyPainPenalty
+  };
+
+  const templateData = {
+    gmMessage,
+    buttonLabel,
+    requestData: JSON.stringify(requestData),
+    actorName: actor.name,
+    title: loc("ROLL_REQ.chatRequestTitle")
+  };
+
+  const content = await renderTemplate(`modules/${MODULE_ID}/templates/chat/roll-request.hbs`, templateData);
+
+  // Find the player who owns this actor
+  const ownerIds = Object.entries(actor.ownership)
+    .filter(([id, level]) => level === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER && id !== "default")
+    .map(([id]) => id);
+
+  // Whisper to owners and GM
+  const whisperTargets = [...new Set([...ownerIds, ...game.users.filter(u => u.isGM).map(u => u.id)])];
+
+  await ChatMessage.create({
+    content,
+    speaker: ChatMessage.getSpeaker({ alias: "Game Master" }),
+    whisper: whisperTargets,
+    flags: {
+      [MODULE_ID]: { isRollRequest: true, requestData }
+    }
+  });
+}
+
+/* ---------------------------------------- */
+/*  Chat Message - Roll Button Listener     */
+/* ---------------------------------------- */
+
+Hooks.on("renderChatMessage", (message, html) => {
+  const button = html.querySelector(".roll-req-execute");
+  if (!button) return;
+
+  const requestData = JSON.parse(button.dataset.request);
+  const actor = game.actors.get(requestData.actorId);
+
+  // Only show button to the actor's owner (non-GM) or GM
+  if (!actor?.isOwner) {
+    button.style.display = "none";
+    return;
+  }
+
+  // If already rolled, keep button disabled
+  if (message.getFlag(MODULE_ID, "rolled")) {
+    button.disabled = true;
+    button.classList.add("rolled");
+    return;
+  }
+
+  button.addEventListener("click", async (event) => {
+    event.preventDefault();
+    button.disabled = true;
+    button.classList.add("rolled");
+
+    await executeRoll(actor, requestData, message);
+  });
+});
+
+/* ---------------------------------------- */
+/*  Execute the Roll                        */
+/* ---------------------------------------- */
+
+async function executeRoll(actor, requestData, requestMessage) {
+  const { traits, traitLabels, requiredSuccesses, applyPainPenalty } = requestData;
+
+  // Calculate dice pool
+  let dicePool = 0;
+  const breakdown = [];
+
+  for (const trait of traits) {
+    let value = 0;
+    if (trait.type === "attribute") {
+      value = actor.system.attributes?.[trait.key] ?? 0;
+    } else if (trait.type === "skill") {
+      value = actor.system.skills?.[trait.key] ?? 0;
+    }
+    const label = loc(`ROLL_REQ.${trait.key}`);
+    breakdown.push(`${label}: ${value}`);
+    dicePool += value;
+  }
+
+  // Pain penalty
+  let removedSuccesses = 0;
+  if (applyPainPenalty) {
+    const hp = actor.system.resources?.hp;
+    if (hp) {
+      const halfMax = Math.floor(hp.max / 2);
+      if (hp.value <= 1) removedSuccesses = 2;
+      else if (hp.value <= halfMax) removedSuccesses = 1;
+    }
+  }
+
+  // Minimum 1 die
+  dicePool = Math.max(dicePool, 1);
+
+  // Roll
+  const roll = await new Roll(`${dicePool}d6cs>=4`).evaluate();
+
+  const rawSuccesses = roll.total;
+  const netSuccesses = Math.max(rawSuccesses - removedSuccesses, 0);
+  const success = netSuccesses >= requiredSuccesses;
+
+  // Build flavor
+  const traitString = traitLabels.join(" + ");
+  const flavor = `<strong>${loc("ROLL_REQ.rollButton", { traits: traitString })}</strong>
+    <br><small>${breakdown.join(" | ")} = ${dicePool}d6</small>
+    <br>Raw: ${rawSuccesses} | Removed: ${removedSuccesses} | Net: ${netSuccesses} | Required: ${requiredSuccesses}
+    <span class="roll-req-result ${success ? "roll-req-success" : "roll-req-fail"}">${success ? "HIT" : "MISS"}</span>`;
+
+  // Post roll to chat
+  await roll.toMessage({
+    speaker: ChatMessage.getSpeaker({ actor }),
+    flavor
+  });
+
+  // Mark request as rolled
+  await requestMessage.setFlag(MODULE_ID, "rolled", true);
+}

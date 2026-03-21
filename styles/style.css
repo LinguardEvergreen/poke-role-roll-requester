@@ -1,0 +1,145 @@
+/* ---------------------------------------- */
+/*  Request Dialog                          */
+/* ---------------------------------------- */
+
+.roll-req-dialog fieldset {
+  border: 1px solid var(--color-border-light-2, #999);
+  border-radius: 4px;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+}
+
+.roll-req-dialog fieldset legend {
+  font-weight: bold;
+  font-size: 0.9rem;
+  padding: 0 0.4rem;
+}
+
+.roll-req-trait-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 4px 12px;
+}
+
+.roll-req-trait {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.roll-req-trait:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.roll-req-trait input[type="checkbox"] {
+  margin: 0;
+}
+
+.roll-req-trait-name {
+  flex: 1;
+}
+
+.roll-req-trait-value {
+  font-weight: bold;
+  min-width: 1.5em;
+  text-align: center;
+  color: var(--color-text-dark-primary, #333);
+}
+
+.roll-req-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+/* ---------------------------------------- */
+/*  Chat Card                               */
+/* ---------------------------------------- */
+
+.roll-req-chat-card {
+  padding: 0.5rem;
+}
+
+.roll-req-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid var(--color-border-highlight, #c53131);
+}
+
+.roll-req-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text-dark-primary, #333);
+}
+
+.roll-req-target {
+  font-weight: bold;
+  font-style: italic;
+  color: var(--color-text-dark-secondary, #666);
+}
+
+.roll-req-message {
+  background: rgba(0, 0, 0, 0.04);
+  border-left: 3px solid var(--color-border-highlight, #c53131);
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0 4px 4px 0;
+}
+
+.roll-req-message p {
+  margin: 0;
+  font-style: italic;
+}
+
+.roll-req-execute {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  background: var(--color-bg-btn, #7a0000);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.roll-req-execute:hover:not(:disabled) {
+  background: var(--color-bg-btn-hover, #5a0000);
+}
+
+.roll-req-execute:disabled,
+.roll-req-execute.rolled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------- */
+/*  Roll Result Badge                       */
+/* ---------------------------------------- */
+
+.roll-req-result {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin-left: 6px;
+}
+
+.roll-req-success {
+  background: #18520b;
+  color: #fff;
+}
+
+.roll-req-fail {
+  background: #7a0000;
+  color: #fff;
+}

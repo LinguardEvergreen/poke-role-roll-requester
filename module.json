@@ -1,0 +1,48 @@
+{
+  "id": "poke-role-roll-requester",
+  "title": "Poké Role - Roll Requester",
+  "description": "Adds a token context menu option for the GM to request combined rolls from players. The request appears in chat with a roll button for the character owner.",
+  "version": "1.0.0",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13.351"
+  },
+  "relationships": {
+    "systems": [
+      {
+        "id": "pok-role-system",
+        "type": "system",
+        "compatibility": {
+          "minimum": "0.16.0"
+        }
+      }
+    ]
+  },
+  "authors": [
+    {
+      "name": "LinguardEvergreen",
+      "url": "https://github.com/LinguardEvergreen"
+    }
+  ],
+  "esmodules": [
+    "scripts/main.mjs"
+  ],
+  "styles": [
+    "styles/style.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    },
+    {
+      "lang": "it",
+      "name": "Italiano",
+      "path": "lang/it.json"
+    }
+  ],
+  "url": "https://github.com/LinguardEvergreen/poke-role-roll-requester",
+  "manifest": "https://github.com/LinguardEvergreen/poke-role-roll-requester/releases/latest/download/module.json",
+  "download": "https://github.com/LinguardEvergreen/poke-role-roll-requester/releases/latest/download/module.zip"
+}
