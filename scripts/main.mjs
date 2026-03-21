@@ -214,6 +214,7 @@ async function sendRollRequest(actor, selectedTraits, traitLabels, gmMessage, re
     gmMessage,
     buttonLabel,
     requestData: JSON.stringify(requestData),
+    actorId: actor.id,
     actorName: actor.name,
     title: loc("ROLL_REQ.chatRequestTitle")
   };
@@ -246,22 +247,17 @@ const SOCKET_NAME = `module.${MODULE_ID}`;
 
 Hooks.once("ready", () => {
   game.socket.on(SOCKET_NAME, async (data) => {
-    // Only the GM processes socket requests to update messages
-    if (!game.user.isGM) return;
+    // Only the first active GM processes socket requests
+    const firstGM = game.users.find(u => u.isGM && u.active);
+    if (game.user.id !== firstGM?.id) return;
 
     if (data.action === "updateRollResult") {
       const message = game.messages.get(data.messageId);
       if (!message) return;
 
-      // Update the message content: replace the button with the roll result
-      const newContent = message.content.replace(
-        /<button[^>]*class="roll-req-execute"[^>]*>[\s\S]*?<\/button>/,
-        data.resultHtml
-      );
-
       await message.update({
-        content: newContent,
-        "flags.poke-role-roll-requester.rolled": true
+        [`flags.${MODULE_ID}.rolled`]: true,
+        [`flags.${MODULE_ID}.rollResult`]: data.rollResult
       });
     }
   });
@@ -275,18 +271,20 @@ Hooks.on("renderChatMessageHTML", (message, html) => {
   const button = html.querySelector(".roll-req-execute");
   if (!button) return;
 
-  const requestData = JSON.parse(button.dataset.request);
-  const actor = game.actors.get(requestData.actorId);
+  const actorId = button.dataset.actorId;
+  const actor = game.actors.get(actorId);
 
-  // Only show button to the actor's owner (non-GM) or GM
+  // Only show button to the actor's owner or GM
   if (!actor?.isOwner) {
     button.style.display = "none";
     return;
   }
 
-  // If already rolled, hide the button (result is already in the content)
-  if (message.getFlag(MODULE_ID, "rolled")) {
-    button.style.display = "none";
+  // If already rolled, replace button with the stored result
+  const rollResult = message.getFlag(MODULE_ID, "rollResult");
+  if (rollResult) {
+    const resultEl = buildResultElement(rollResult);
+    button.replaceWith(resultEl);
     return;
   }
 
@@ -295,9 +293,51 @@ Hooks.on("renderChatMessageHTML", (message, html) => {
     button.disabled = true;
     button.classList.add("rolled");
 
-    await executeRoll(actor, requestData, message);
+    try {
+      const requestData = JSON.parse(button.dataset.request);
+      await executeRoll(actor, requestData, message);
+    } catch (err) {
+      console.error(`${MODULE_ID} | Roll execution failed:`, err);
+      ui.notifications.error("Roll failed. Check console for details.");
+      button.disabled = false;
+      button.classList.remove("rolled");
+    }
   });
 });
+
+/* ---------------------------------------- */
+/*  Build Result Element from stored data   */
+/* ---------------------------------------- */
+
+function buildResultElement(result) {
+  const {
+    diceValues, breakdown, dicePool,
+    rawSuccesses, removedSuccesses, netSuccesses,
+    requiredSuccesses, success, traitString
+  } = result;
+
+  const diceHtml = diceValues.map(v => {
+    const cls = v >= 4 ? "roll-req-die-success" : "roll-req-die-fail";
+    return `<span class="roll-req-die ${cls}">${v}</span>`;
+  }).join("");
+
+  const container = document.createElement("div");
+  container.classList.add("roll-req-result-block");
+  container.innerHTML = `
+    <div class="roll-req-roll-label">${loc("ROLL_REQ.rollButton", { traits: traitString })}</div>
+    <div class="roll-req-dice-row">${diceHtml}</div>
+    <div class="roll-req-stats">
+      <span>${breakdown} = ${dicePool}d6</span>
+    </div>
+    <div class="roll-req-summary">
+      Raw: ${rawSuccesses} | Removed: ${removedSuccesses} | Net: ${netSuccesses} | Required: ${requiredSuccesses}
+    </div>
+    <div class="roll-req-result-badge ${success ? "roll-req-success" : "roll-req-fail"}">
+      ${success ? "HIT" : "MISS"}
+    </div>`;
+
+  return container;
+}
 
 /* ---------------------------------------- */
 /*  Execute the Roll                        */
@@ -308,7 +348,7 @@ async function executeRoll(actor, requestData, requestMessage) {
 
   // Calculate dice pool
   let dicePool = 0;
-  const breakdown = [];
+  const breakdownParts = [];
 
   for (const trait of traits) {
     let value = 0;
@@ -318,7 +358,7 @@ async function executeRoll(actor, requestData, requestMessage) {
       value = actor.system.skills?.[trait.key] ?? 0;
     }
     const label = loc(`ROLL_REQ.${trait.key}`);
-    breakdown.push(`${label}: ${value}`);
+    breakdownParts.push(`${label}: ${value}`);
     dicePool += value;
   }
 
@@ -336,52 +376,38 @@ async function executeRoll(actor, requestData, requestMessage) {
   // Minimum 1 die
   dicePool = Math.max(dicePool, 1);
 
-  // Roll
+  // Roll the dice
   const roll = await new Roll(`${dicePool}d6cs>=4`).evaluate();
 
   const rawSuccesses = roll.total;
   const netSuccesses = Math.max(rawSuccesses - removedSuccesses, 0);
   const success = netSuccesses >= requiredSuccesses;
+  const diceValues = roll.dice[0].results.map(r => r.result);
 
-  // Build individual dice HTML
-  const diceResults = roll.dice[0].results.map(r => {
-    const isSuccess = r.result >= 4;
-    return `<span class="roll-req-die ${isSuccess ? "roll-req-die-success" : "roll-req-die-fail"}">${r.result}</span>`;
-  }).join("");
+  // Serializable result object to store in message flags
+  const rollResult = {
+    diceValues,
+    breakdown: breakdownParts.join(" | "),
+    dicePool,
+    rawSuccesses,
+    removedSuccesses,
+    netSuccesses,
+    requiredSuccesses,
+    success,
+    traitString: traitLabels.join(" + ")
+  };
 
-  // Build the result HTML that replaces the button
-  const traitString = traitLabels.join(" + ");
-  const resultHtml = `<div class="roll-req-result-block">
-    <div class="roll-req-roll-label">${loc("ROLL_REQ.rollButton", { traits: traitString })}</div>
-    <div class="roll-req-dice-row">${diceResults}</div>
-    <div class="roll-req-stats">
-      <span>${breakdown.join(" | ")} = ${dicePool}d6</span>
-    </div>
-    <div class="roll-req-summary">
-      Raw: ${rawSuccesses} | Removed: ${removedSuccesses} | Net: ${netSuccesses} | Required: ${requiredSuccesses}
-    </div>
-    <div class="roll-req-result-badge ${success ? "roll-req-success" : "roll-req-fail"}">
-      ${success ? "HIT" : "MISS"}
-    </div>
-  </div>`;
-
-  // Send the result to the GM via socket so the GM updates the message
+  // Store result via flags — GM updates directly, player uses socket
   if (game.user.isGM) {
-    // GM can update directly
-    const newContent = requestMessage.content.replace(
-      /<button[^>]*class="roll-req-execute"[^>]*>[\s\S]*?<\/button>/,
-      resultHtml
-    );
     await requestMessage.update({
-      content: newContent,
-      "flags.poke-role-roll-requester.rolled": true
+      [`flags.${MODULE_ID}.rolled`]: true,
+      [`flags.${MODULE_ID}.rollResult`]: rollResult
     });
   } else {
-    // Player sends via socket for GM to update
     game.socket.emit(SOCKET_NAME, {
       action: "updateRollResult",
       messageId: requestMessage.id,
-      resultHtml
+      rollResult
     });
   }
 }
