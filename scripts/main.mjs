@@ -239,6 +239,35 @@ async function sendRollRequest(actor, selectedTraits, traitLabels, gmMessage, re
 }
 
 /* ---------------------------------------- */
+/*  Socket Handling                         */
+/* ---------------------------------------- */
+
+const SOCKET_NAME = `module.${MODULE_ID}`;
+
+Hooks.once("ready", () => {
+  game.socket.on(SOCKET_NAME, async (data) => {
+    // Only the GM processes socket requests to update messages
+    if (!game.user.isGM) return;
+
+    if (data.action === "updateRollResult") {
+      const message = game.messages.get(data.messageId);
+      if (!message) return;
+
+      // Update the message content: replace the button with the roll result
+      const newContent = message.content.replace(
+        /<button[^>]*class="roll-req-execute"[^>]*>[\s\S]*?<\/button>/,
+        data.resultHtml
+      );
+
+      await message.update({
+        content: newContent,
+        "flags.poke-role-roll-requester.rolled": true
+      });
+    }
+  });
+});
+
+/* ---------------------------------------- */
 /*  Chat Message - Roll Button Listener     */
 /* ---------------------------------------- */
 
@@ -255,10 +284,9 @@ Hooks.on("renderChatMessageHTML", (message, html) => {
     return;
   }
 
-  // If already rolled, keep button disabled
+  // If already rolled, hide the button (result is already in the content)
   if (message.getFlag(MODULE_ID, "rolled")) {
-    button.disabled = true;
-    button.classList.add("rolled");
+    button.style.display = "none";
     return;
   }
 
@@ -315,19 +343,45 @@ async function executeRoll(actor, requestData, requestMessage) {
   const netSuccesses = Math.max(rawSuccesses - removedSuccesses, 0);
   const success = netSuccesses >= requiredSuccesses;
 
-  // Build flavor
+  // Build individual dice HTML
+  const diceResults = roll.dice[0].results.map(r => {
+    const isSuccess = r.result >= 4;
+    return `<span class="roll-req-die ${isSuccess ? "roll-req-die-success" : "roll-req-die-fail"}">${r.result}</span>`;
+  }).join("");
+
+  // Build the result HTML that replaces the button
   const traitString = traitLabels.join(" + ");
-  const flavor = `<strong>${loc("ROLL_REQ.rollButton", { traits: traitString })}</strong>
-    <br><small>${breakdown.join(" | ")} = ${dicePool}d6</small>
-    <br>Raw: ${rawSuccesses} | Removed: ${removedSuccesses} | Net: ${netSuccesses} | Required: ${requiredSuccesses}
-    <span class="roll-req-result ${success ? "roll-req-success" : "roll-req-fail"}">${success ? "HIT" : "MISS"}</span>`;
+  const resultHtml = `<div class="roll-req-result-block">
+    <div class="roll-req-roll-label">${loc("ROLL_REQ.rollButton", { traits: traitString })}</div>
+    <div class="roll-req-dice-row">${diceResults}</div>
+    <div class="roll-req-stats">
+      <span>${breakdown.join(" | ")} = ${dicePool}d6</span>
+    </div>
+    <div class="roll-req-summary">
+      Raw: ${rawSuccesses} | Removed: ${removedSuccesses} | Net: ${netSuccesses} | Required: ${requiredSuccesses}
+    </div>
+    <div class="roll-req-result-badge ${success ? "roll-req-success" : "roll-req-fail"}">
+      ${success ? "HIT" : "MISS"}
+    </div>
+  </div>`;
 
-  // Post roll to chat
-  await roll.toMessage({
-    speaker: ChatMessage.getSpeaker({ actor }),
-    flavor
-  });
-
-  // Mark request as rolled
-  await requestMessage.setFlag(MODULE_ID, "rolled", true);
+  // Send the result to the GM via socket so the GM updates the message
+  if (game.user.isGM) {
+    // GM can update directly
+    const newContent = requestMessage.content.replace(
+      /<button[^>]*class="roll-req-execute"[^>]*>[\s\S]*?<\/button>/,
+      resultHtml
+    );
+    await requestMessage.update({
+      content: newContent,
+      "flags.poke-role-roll-requester.rolled": true
+    });
+  } else {
+    // Player sends via socket for GM to update
+    game.socket.emit(SOCKET_NAME, {
+      action: "updateRollResult",
+      messageId: requestMessage.id,
+      resultHtml
+    });
+  }
 }

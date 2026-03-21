@@ -131,16 +131,67 @@
 }
 
 /* ---------------------------------------- */
-/*  Roll Result Badge                       */
+/*  Roll Result (inline in chat card)       */
 /* ---------------------------------------- */
 
-.roll-req-result {
+.roll-req-result-block {
+  margin-top: 0.4rem;
+  text-align: center;
+}
+
+.roll-req-roll-label {
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+
+.roll-req-dice-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 0.4rem;
+}
+
+.roll-req-die {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.roll-req-die-success {
+  background: #18520b;
+  color: #fff;
+}
+
+.roll-req-die-fail {
+  background: #ddd;
+  color: #555;
+}
+
+.roll-req-stats {
+  font-size: 0.8rem;
+  color: var(--color-text-dark-secondary, #666);
+  margin-bottom: 0.2rem;
+}
+
+.roll-req-summary {
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+}
+
+.roll-req-result-badge {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 3px 14px;
   border-radius: 3px;
   font-weight: bold;
-  font-size: 0.85rem;
-  margin-left: 6px;
+  font-size: 0.95rem;
 }
 
 .roll-req-success {
