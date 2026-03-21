@@ -240,14 +240,14 @@ async function sendRollRequest(actor, selectedTraits, traitLabels, gmMessage, re
 }
 
 /* ---------------------------------------- */
-/*  Socket Handling                         */
+/*  Socket Handling + Delegated Listeners   */
 /* ---------------------------------------- */
 
 const SOCKET_NAME = `module.${MODULE_ID}`;
 
 Hooks.once("ready", () => {
+  // Socket: GM receives roll results from players
   game.socket.on(SOCKET_NAME, async (data) => {
-    // Only the first active GM processes socket requests
     const firstGM = game.users.find(u => u.isGM && u.active);
     if (game.user.id !== firstGM?.id) return;
 
@@ -261,10 +261,14 @@ Hooks.once("ready", () => {
       });
     }
   });
+
+  // Delegated click listener on the chat log — survives DOM replacement
+  const chatLog = document.getElementById("chat-log");
+  if (chatLog) chatLog.addEventListener("click", handleRollButtonClick);
 });
 
 /* ---------------------------------------- */
-/*  Chat Message - Roll Button Listener     */
+/*  Render Hook - Display results / hide    */
 /* ---------------------------------------- */
 
 Hooks.on("renderChatMessageHTML", (message, html) => {
@@ -274,36 +278,57 @@ Hooks.on("renderChatMessageHTML", (message, html) => {
   const actorId = button.dataset.actorId;
   const actor = game.actors.get(actorId);
 
-  // Only show button to the actor's owner or GM
+  // Hide button from non-owners
   if (!actor?.isOwner) {
     button.style.display = "none";
     return;
   }
 
-  // If already rolled, replace button with the stored result
+  // If already rolled, replace button with stored result
   const rollResult = message.getFlag(MODULE_ID, "rollResult");
   if (rollResult) {
     const resultEl = buildResultElement(rollResult);
     button.replaceWith(resultEl);
     return;
   }
-
-  button.addEventListener("click", async (event) => {
-    event.preventDefault();
-    button.disabled = true;
-    button.classList.add("rolled");
-
-    try {
-      const requestData = JSON.parse(button.dataset.request);
-      await executeRoll(actor, requestData, message);
-    } catch (err) {
-      console.error(`${MODULE_ID} | Roll execution failed:`, err);
-      ui.notifications.error("Roll failed. Check console for details.");
-      button.disabled = false;
-      button.classList.remove("rolled");
-    }
-  });
 });
+
+/* ---------------------------------------- */
+/*  Handle Roll Button Click (delegated)    */
+/* ---------------------------------------- */
+
+async function handleRollButtonClick(event) {
+  const button = event.target.closest(".roll-req-execute");
+  if (!button || button.disabled) return;
+
+  // Find the parent chat message element and get the message document
+  const messageEl = button.closest("[data-message-id]");
+  if (!messageEl) return;
+  const message = game.messages.get(messageEl.dataset.messageId);
+  if (!message) return;
+
+  // Already rolled?
+  if (message.getFlag(MODULE_ID, "rolled")) return;
+
+  const actorId = button.dataset.actorId;
+  const actor = game.actors.get(actorId);
+  if (!actor?.isOwner) return;
+
+  // Disable button immediately
+  event.preventDefault();
+  button.disabled = true;
+  button.classList.add("rolled");
+
+  try {
+    const requestData = JSON.parse(button.dataset.request);
+    await executeRoll(actor, requestData, message);
+  } catch (err) {
+    console.error(`${MODULE_ID} | Roll execution failed:`, err);
+    ui.notifications.error("Roll failed. Check console for details.");
+    button.disabled = false;
+    button.classList.remove("rolled");
+  }
+}
 
 /* ---------------------------------------- */
 /*  Build Result Element from stored data   */
