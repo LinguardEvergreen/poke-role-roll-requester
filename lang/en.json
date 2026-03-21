@@ -12,6 +12,7 @@
   "ROLL_REQ.chatRequestTitle": "Roll Request",
   "ROLL_REQ.rollButton": "Roll on {traits}",
   "ROLL_REQ.noTraitSelected": "You must select at least one attribute or skill.",
+  "ROLL_REQ.maxTwoTraits": "You can select a maximum of 2 traits.",
   "ROLL_REQ.requiredSuccesses": "Required Successes",
   "ROLL_REQ.applyPainPenalty": "Apply Pain Penalty",
   "ROLL_REQ.strength": "Strength",

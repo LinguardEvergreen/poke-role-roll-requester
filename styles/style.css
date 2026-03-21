@@ -49,6 +49,15 @@
   color: var(--color-text-dark-primary, #333);
 }
 
+.roll-req-trait.roll-req-disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.roll-req-trait.roll-req-disabled:hover {
+  background: none;
+}
+
 .roll-req-checkbox label {
   display: flex;
   align-items: center;

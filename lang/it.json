@@ -12,6 +12,7 @@
   "ROLL_REQ.chatRequestTitle": "Richiesta di Tiro",
   "ROLL_REQ.rollButton": "Tiro su {traits}",
   "ROLL_REQ.noTraitSelected": "Devi selezionare almeno un attributo o un'abilità.",
+  "ROLL_REQ.maxTwoTraits": "Puoi selezionare un massimo di 2 campi.",
   "ROLL_REQ.requiredSuccesses": "Successi Richiesti",
   "ROLL_REQ.applyPainPenalty": "Applica Penalità Dolore",
   "ROLL_REQ.strength": "Forza",

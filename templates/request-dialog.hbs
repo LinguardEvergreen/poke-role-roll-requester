@@ -20,12 +20,12 @@
   </div>
 
   {{!-- Physical / Mental Attributes --}}
-  <fieldset>
+  <fieldset class="roll-req-group" data-group="physical">
     <legend>{{localize "ROLL_REQ.physicalMental"}}</legend>
     <div class="roll-req-trait-grid">
       {{#each physicalMental}}
       <label class="roll-req-trait">
-        <input type="checkbox" name="attr-{{this.key}}" />
+        <input type="checkbox" name="attr-{{this.key}}" class="roll-req-selectable" data-group="physical" />
         <span class="roll-req-trait-name">{{this.label}}</span>
         <span class="roll-req-trait-value">{{this.value}}</span>
       </label>
@@ -34,12 +34,12 @@
   </fieldset>
 
   {{!-- Social Attributes --}}
-  <fieldset>
+  <fieldset class="roll-req-group" data-group="social">
     <legend>{{localize "ROLL_REQ.social"}}</legend>
     <div class="roll-req-trait-grid">
       {{#each social}}
       <label class="roll-req-trait">
-        <input type="checkbox" name="attr-{{this.key}}" />
+        <input type="checkbox" name="attr-{{this.key}}" class="roll-req-selectable" data-group="social" />
         <span class="roll-req-trait-name">{{this.label}}</span>
         <span class="roll-req-trait-value">{{this.value}}</span>
       </label>
@@ -48,12 +48,12 @@
   </fieldset>
 
   {{!-- Skills --}}
-  <fieldset>
+  <fieldset class="roll-req-group" data-group="skill">
     <legend>{{localize "ROLL_REQ.skills"}}</legend>
     <div class="roll-req-trait-grid">
       {{#each skills}}
       <label class="roll-req-trait">
-        <input type="checkbox" name="skill-{{this.key}}" />
+        <input type="checkbox" name="skill-{{this.key}}" class="roll-req-selectable" data-group="skill" />
         <span class="roll-req-trait-name">{{this.label}}</span>
         <span class="roll-req-trait-value">{{this.value}}</span>
       </label>

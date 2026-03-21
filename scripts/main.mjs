@@ -79,7 +79,7 @@ async function openRequestDialog(token) {
 
   const content = await renderTemplate(`modules/${MODULE_ID}/templates/request-dialog.hbs`, templateData);
 
-  await foundry.applications.api.DialogV2.wait({
+  const dialog = new foundry.applications.api.DialogV2({
     window: { title: loc("ROLL_REQ.dialogTitle", { name: actor.name }) },
     content,
     buttons: [
@@ -88,7 +88,7 @@ async function openRequestDialog(token) {
         label: loc("ROLL_REQ.send"),
         icon: "fas fa-paper-plane",
         default: true,
-        callback: (event, button, dialog) => {
+        callback: (event, button, dlg) => {
           const form = button.form;
           return processRequestForm(form, actor);
         }
@@ -99,6 +99,66 @@ async function openRequestDialog(token) {
         icon: "fas fa-times"
       }
     ]
+  });
+
+  // Hook into dialog render to attach selection constraint logic
+  Hooks.once("renderDialogV2", (app, html) => {
+    if (app !== dialog) return;
+    attachSelectionConstraints(html);
+  });
+
+  dialog.render(true);
+}
+
+/**
+ * Attach checkbox selection constraints to the dialog:
+ * - Max 2 total selections
+ * - Physical/Mental and Social attributes are mutually exclusive
+ */
+function attachSelectionConstraints(html) {
+  const allCheckboxes = html.querySelectorAll(".roll-req-selectable");
+
+  allCheckboxes.forEach(cb => {
+    cb.addEventListener("change", () => updateConstraints(html));
+  });
+}
+
+function updateConstraints(html) {
+  const allCheckboxes = Array.from(html.querySelectorAll(".roll-req-selectable"));
+  const checked = allCheckboxes.filter(cb => cb.checked);
+  const checkedCount = checked.length;
+
+  // Determine which attribute group is active (physical or social)
+  const hasPhysical = checked.some(cb => cb.dataset.group === "physical");
+  const hasSocial = checked.some(cb => cb.dataset.group === "social");
+
+  allCheckboxes.forEach(cb => {
+    const group = cb.dataset.group;
+
+    // If already checked, always keep enabled so user can uncheck
+    if (cb.checked) {
+      cb.disabled = false;
+      cb.closest(".roll-req-trait")?.classList.remove("roll-req-disabled");
+      return;
+    }
+
+    let shouldDisable = false;
+
+    // Rule 1: Max 2 selections total
+    if (checkedCount >= 2) {
+      shouldDisable = true;
+    }
+
+    // Rule 2: Physical/Mental and Social are mutually exclusive
+    if (group === "physical" && hasSocial) {
+      shouldDisable = true;
+    }
+    if (group === "social" && hasPhysical) {
+      shouldDisable = true;
+    }
+
+    cb.disabled = shouldDisable;
+    cb.closest(".roll-req-trait")?.classList.toggle("roll-req-disabled", shouldDisable);
   });
 }
 
@@ -123,6 +183,9 @@ function processRequestForm(form, actor) {
 
   if (selectedTraits.length === 0) {
     throw new Error(loc("ROLL_REQ.noTraitSelected"));
+  }
+  if (selectedTraits.length > 2) {
+    throw new Error(loc("ROLL_REQ.maxTwoTraits"));
   }
 
   const message = form.elements["gm-message"]?.value || "";
