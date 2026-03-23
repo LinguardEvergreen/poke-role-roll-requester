@@ -2,7 +2,7 @@
   "id": "poke-role-roll-requester",
   "title": "Poké Role - Roll Requester",
   "description": "Adds a token context menu option for the GM to request combined rolls from players. The request appears in chat with a roll button for the character owner.",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "socket": true,
   "compatibility": {
     "minimum": "13",

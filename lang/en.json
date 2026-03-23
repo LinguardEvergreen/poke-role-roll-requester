@@ -25,11 +25,11 @@
   "ROLL_REQ.cool": "Cool",
   "ROLL_REQ.cute": "Cute",
   "ROLL_REQ.clever": "Clever",
-  "ROLL_REQ.allure": "Allure",
   "ROLL_REQ.alert": "Alert",
   "ROLL_REQ.athletic": "Athletic",
   "ROLL_REQ.brawl": "Brawl",
   "ROLL_REQ.channel": "Channel",
+  "ROLL_REQ.charm": "Charm",
   "ROLL_REQ.clash": "Clash",
   "ROLL_REQ.crafts": "Crafts",
   "ROLL_REQ.empathy": "Empathy",
@@ -41,7 +41,5 @@
   "ROLL_REQ.nature": "Nature",
   "ROLL_REQ.perform": "Perform",
   "ROLL_REQ.science": "Science",
-  "ROLL_REQ.stealth": "Stealth",
-  "ROLL_REQ.throw": "Throw",
-  "ROLL_REQ.weapons": "Weapons"
+  "ROLL_REQ.stealth": "Stealth"
 }

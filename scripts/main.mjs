@@ -1,11 +1,11 @@
 const MODULE_ID = "poke-role-roll-requester";
 
 const PHYSICAL_MENTAL = ["strength", "dexterity", "vitality", "special", "insight"];
-const SOCIAL = ["tough", "beauty", "cool", "cute", "clever", "allure"];
+const SOCIAL = ["tough", "beauty", "cool", "cute", "clever"];
 const SKILLS = [
-  "alert", "athletic", "brawl", "channel", "clash", "crafts",
+  "alert", "athletic", "brawl", "channel", "charm", "clash", "crafts",
   "empathy", "etiquette", "evasion", "intimidate", "lore", "medicine",
-  "nature", "perform", "science", "stealth", "throw", "weapons"
+  "nature", "perform", "science", "stealth"
 ];
 
 function loc(key, data = {}) {

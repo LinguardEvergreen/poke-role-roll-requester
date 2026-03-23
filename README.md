@@ -53,10 +53,10 @@ A **FoundryVTT v13** module that gives the Game Master the ability to request co
 Strength, Dexterity, Vitality, Special, Insight
 
 ### Social Attributes
-Tough, Beauty, Cool, Cute, Clever, Allure
+Tough, Beauty, Cool, Cute, Clever
 
 ### Skills
-Alert, Athletic, Brawl, Channel, Clash, Crafts, Empathy, Etiquette, Evasion, Intimidate, Lore, Medicine, Nature, Perform, Science, Stealth, Throw, Weapons
+Alert, Athletic, Brawl, Channel, Charm, Clash, Crafts, Empathy, Etiquette, Evasion, Intimidate, Lore, Medicine, Nature, Perform, Science, Stealth
 
 ## Roll Mechanics
 
