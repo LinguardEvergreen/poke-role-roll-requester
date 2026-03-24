@@ -49,14 +49,19 @@ A **FoundryVTT v13** module that gives the Game Master the ability to request co
 
 ## Available Traits
 
-### Physical / Mental Attributes
-Strength, Dexterity, Vitality, Special, Insight
+The dialog automatically adapts based on whether the token is a **Trainer** or a **Pokemon**.
 
-### Social Attributes
-Tough, Beauty, Cool, Cute, Clever
+### Trainer
 
-### Skills
-Alert, Athletic, Brawl, Channel, Charm, Clash, Crafts, Empathy, Etiquette, Evasion, Intimidate, Lore, Medicine, Nature, Perform, Science, Stealth
+| Physical / Mental | Social | Skills |
+|---|---|---|
+| Strength, Dexterity, Vitality, Insight | Tough, Beauty, Cool, Cute, Clever | Brawl, Channel, Clash, Evasion, Alert, Athletic, Nature, Stealth, Empathy, Etiquette, Intimidate, Perform, Crafts, Lore, Medicine, Science |
+
+### Pokemon
+
+| Physical / Mental | Social | Skills |
+|---|---|---|
+| Strength, Dexterity, Vitality, **Special**, Insight | Tough, Beauty, Cool, Cute, Clever | Brawl, Channel, Clash, Evasion, Alert, Athletic, Nature, Stealth, Charm, Etiquette, Intimidate, Perform |
 
 ## Roll Mechanics
 

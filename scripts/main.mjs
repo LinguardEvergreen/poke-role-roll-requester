@@ -1,12 +1,35 @@
 const MODULE_ID = "poke-role-roll-requester";
 
-const PHYSICAL_MENTAL = ["strength", "dexterity", "vitality", "special", "insight"];
-const SOCIAL = ["tough", "beauty", "cool", "cute", "clever"];
-const SKILLS = [
-  "alert", "athletic", "brawl", "channel", "charm", "clash", "crafts",
-  "empathy", "etiquette", "evasion", "intimidate", "lore", "medicine",
-  "nature", "perform", "science", "stealth"
-];
+/* ---------------------------------------- */
+/*  Traits per Actor Type                   */
+/* ---------------------------------------- */
+
+const TRAITS = {
+  trainer: {
+    physicalMental: ["strength", "dexterity", "vitality", "insight"],
+    social: ["tough", "beauty", "cool", "cute", "clever"],
+    skills: [
+      "brawl", "channel", "clash", "evasion",
+      "alert", "athletic", "nature", "stealth",
+      "empathy", "etiquette", "intimidate", "perform",
+      "crafts", "lore", "medicine", "science"
+    ]
+  },
+  pokemon: {
+    physicalMental: ["strength", "dexterity", "vitality", "special", "insight"],
+    social: ["tough", "beauty", "cool", "cute", "clever"],
+    skills: [
+      "brawl", "channel", "clash", "evasion",
+      "alert", "athletic", "nature", "stealth",
+      "charm", "etiquette", "intimidate", "perform"
+    ]
+  }
+};
+
+function getTraitsForActor(actor) {
+  const type = actor.type; // "trainer" or "pokemon"
+  return TRAITS[type] || TRAITS.pokemon;
+}
 
 function loc(key, data = {}) {
   return game.i18n.format(key, data);
@@ -65,18 +88,20 @@ async function openRequestDialog(token) {
   const actor = token.actor;
   if (!actor) return;
 
+  const traits = getTraitsForActor(actor);
+
   const templateData = {
-    physicalMental: PHYSICAL_MENTAL.map(key => ({
+    physicalMental: traits.physicalMental.map(key => ({
       key,
       label: loc(`ROLL_REQ.${key}`),
       value: actor.system.attributes?.[key] ?? 0
     })),
-    social: SOCIAL.map(key => ({
+    social: traits.social.map(key => ({
       key,
       label: loc(`ROLL_REQ.${key}`),
       value: actor.system.attributes?.[key] ?? 0
     })),
-    skills: SKILLS.map(key => ({
+    skills: traits.skills.map(key => ({
       key,
       label: loc(`ROLL_REQ.${key}`),
       value: actor.system.skills?.[key] ?? 0
@@ -149,16 +174,17 @@ function updateConstraints(html) {
 }
 
 function processRequestForm(form, actor) {
+  const traits = getTraitsForActor(actor);
   const selectedTraits = [];
   const traitLabels = [];
 
-  for (const key of [...PHYSICAL_MENTAL, ...SOCIAL]) {
+  for (const key of [...traits.physicalMental, ...traits.social]) {
     if (form.elements[`attr-${key}`]?.checked) {
       selectedTraits.push({ type: "attribute", key });
       traitLabels.push(loc(`ROLL_REQ.${key}`));
     }
   }
-  for (const key of SKILLS) {
+  for (const key of traits.skills) {
     if (form.elements[`skill-${key}`]?.checked) {
       selectedTraits.push({ type: "skill", key });
       traitLabels.push(loc(`ROLL_REQ.${key}`));
