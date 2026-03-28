@@ -41,5 +41,7 @@
   "ROLL_REQ.nature": "Nature",
   "ROLL_REQ.perform": "Perform",
   "ROLL_REQ.science": "Science",
-  "ROLL_REQ.stealth": "Stealth"
+  "ROLL_REQ.stealth": "Stealth",
+  "ROLL_REQ.throw": "Throw",
+  "ROLL_REQ.weapon": "Weapon"
 }

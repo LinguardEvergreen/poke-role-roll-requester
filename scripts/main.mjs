@@ -7,9 +7,9 @@ const MODULE_ID = "poke-role-roll-requester";
 const TRAITS = {
   trainer: {
     physicalMental: ["strength", "dexterity", "vitality", "insight"],
-    social: ["tough", "beauty", "cool", "cute", "clever"],
+    social: ["tough", "cool", "beauty", "cute", "clever"],
     skills: [
-      "brawl", "channel", "clash", "evasion",
+      "brawl", "throw", "weapon", "evasion",
       "alert", "athletic", "nature", "stealth",
       "empathy", "etiquette", "intimidate", "perform",
       "crafts", "lore", "medicine", "science"
