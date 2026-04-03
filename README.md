@@ -17,7 +17,7 @@ A **FoundryVTT v13** module that gives the Game Master the ability to request co
 ## Requirements
 
 - **FoundryVTT**: v13 (verified on Build 351)
-- **System**: [Poké Role System](https://github.com/RiccardoMont1/Pok-Role-Module) v0.16.0+
+- **System**: [Poké Role System](https://github.com/RiccardoMont1/Pok-Role-Module) v1.0.0+
 
 ## Installation
 
