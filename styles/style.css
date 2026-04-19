@@ -2,6 +2,14 @@
 /*  Request Dialog                          */
 /* ---------------------------------------- */
 
+/* Wrapper scrollabile - si adatta all'altezza disponibile */
+.roll-req-dialog {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
 .roll-req-dialog fieldset {
   border: 1px solid var(--color-border-light-2, #999);
   border-radius: 4px;

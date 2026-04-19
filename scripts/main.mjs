@@ -112,7 +112,14 @@ async function openRequestDialog(token) {
   const content = await safeRenderTemplate(`modules/${MODULE_ID}/templates/request-dialog.hbs`, templateData);
 
   const dialog = new foundry.applications.api.DialogV2({
-    window: { title: loc("ROLL_REQ.dialogTitle", { name: actor.name }) },
+    window: {
+      title: loc("ROLL_REQ.dialogTitle", { name: actor.name }),
+      resizable: true
+    },
+    position: {
+      width: 480,
+      height: Math.min(680, window.innerHeight - 80)
+    },
     content,
     buttons: [
       {
